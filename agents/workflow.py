@@ -7,6 +7,7 @@ from agents.critique_agent import critique_text
 from agents.concept_agent import extract_concepts
 from agents.graph_agent import store_research_graph
 from agents.rss_agent import ingest_rss_intelligence
+from agents.memory_agent import retrieve_related_intelligence
 
 
 # Shared workflow state
@@ -18,6 +19,7 @@ class ResearchState(TypedDict):
     concepts: str
     graph_status: str
     rss_intelligence: str
+    memory_context: str
 
 
 # Summary node
@@ -29,6 +31,11 @@ def summary_node(state: ResearchState):
 
         combined_text += "\n\n"
         combined_text += state["rss_intelligence"]
+
+    if state.get("memory_context"):
+
+        combined_text += "\n\nPREVIOUS MEMORY:\n"
+        combined_text += state["memory_context"]
 
     summary = summarize_text(combined_text)
 
@@ -72,6 +79,16 @@ def rss_node(state: ResearchState):
         "rss_intelligence": rss_data
     }
 
+def memory_node(state: ResearchState):
+
+    context = retrieve_related_intelligence(
+        state["text"][:300]
+    )
+
+    return {
+        "memory_context": context
+    }
+
 # Build graph
 graph = StateGraph(ResearchState)
 
@@ -80,6 +97,7 @@ graph.add_node("critique", critique_node)
 graph.add_node("concepts", concept_node)
 graph.add_node("graph", graph_node)
 graph.add_node("rss", rss_node)
+graph.add_node("memory", memory_node)
 
 # Workflow order
 graph.set_entry_point("rss")

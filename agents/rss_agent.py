@@ -1,4 +1,5 @@
 from services.rss_ingestion import fetch_ai_feeds
+from database.intelligence_memory import store_intelligence
 
 
 def ingest_rss_intelligence():
@@ -9,14 +10,17 @@ def ingest_rss_intelligence():
 
     for article in articles:
 
-        combined_text += f"""
-        
-        TITLE:
-        {article['title']}
-        
-        SUMMARY:
-        {article['summary']}
-        
-        """
+       store_intelligence(
+        article["title"],
+        article["summary"]
+       )
 
-    return combined_text
+       combined_text += f"""
+
+       TITLE:
+       {article['title']}
+
+       SUMMARY:
+       {article['summary']}
+
+       """
