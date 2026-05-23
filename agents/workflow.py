@@ -6,6 +6,7 @@ from agents.summarizer import summarize_text
 from agents.critique_agent import critique_text
 from agents.concept_agent import extract_concepts
 from agents.graph_agent import store_research_graph
+from agents.rss_agent import ingest_rss_intelligence
 
 
 # Shared workflow state
@@ -16,12 +17,20 @@ class ResearchState(TypedDict):
     critique: str
     concepts: str
     graph_status: str
+    rss_intelligence: str
 
 
 # Summary node
 def summary_node(state: ResearchState):
 
-    summary = summarize_text(state["text"])
+    combined_text = state["text"]
+
+    if state.get("rss_intelligence"):
+
+        combined_text += "\n\n"
+        combined_text += state["rss_intelligence"]
+
+    summary = summarize_text(combined_text)
 
     return {
         "summary": summary
@@ -55,6 +64,14 @@ def graph_node(state: ResearchState):
         "graph_status": result
     }
 
+def rss_node(state: ResearchState):
+
+    rss_data = ingest_rss_intelligence()
+
+    return {
+        "rss_intelligence": rss_data
+    }
+
 # Build graph
 graph = StateGraph(ResearchState)
 
@@ -62,14 +79,16 @@ graph.add_node("summary", summary_node)
 graph.add_node("critique", critique_node)
 graph.add_node("concepts", concept_node)
 graph.add_node("graph", graph_node)
+graph.add_node("rss", rss_node)
 
 # Workflow order
-graph.set_entry_point("summary")
+graph.set_entry_point("rss")
 
 graph.add_edge("summary", "critique")
 graph.add_edge("critique", "concepts")
 graph.add_edge("concepts", "graph")
 graph.add_edge("graph", END)
+graph.add_edge("rss", "summary")
 
 # Compile workflow
 research_workflow = graph.compile()
